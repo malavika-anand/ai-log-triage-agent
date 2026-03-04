@@ -8,13 +8,13 @@ This project demonstrates how serverless infrastructure and automated log analys
 # Architecture
 The system follows a simple serverless architecture:
 
-EventBridge (Scheduled Trigger)
+`EventBridge (Scheduled Trigger)
         ↓
 AWS Lambda (TypeScript)
         ↓
 CloudWatch Logs Query
         ↓
-Evidence Generation
+Evidence Generation`
 
 # Tech Stack
 - TypeScript
@@ -25,7 +25,7 @@ Evidence Generation
 - AWS SDK v3
 
 # Project Structure
-ai-log-triage-agent
+`ai-log-triage-agent
 │
 ├── hello-world/
 │   ├── src/
@@ -36,7 +36,7 @@ ai-log-triage-agent
 ├── template.yaml
 ├── samconfig.toml
 ├── events/
-└── README.md
+└── README.md`
 
 # Deployment
 This project uses AWS SAM for deployment.
