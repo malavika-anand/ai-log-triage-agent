@@ -18,11 +18,29 @@ Resources:
       Handler: dist/handler.handler
       Runtime: nodejs20.x
       Timeout: 10
+
+      Environment:
+        Variables:
+          TARGET_LOG_GROUP: "/aws/lambda/ai-log-triage-agent-HelloWorldFunction-wJyAeWBPF1lm"
+          WINDOW_MINUTES: "10"
+          MAX_SAMPLES: "40"
+
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:FilterLogEvents
+                - logs:DescribeLogGroups
+                - logs:DescribeLogStreams
+              Resource: "*"
+
       Events:
         Every15Minutes:
           Type: Schedule
           Properties:
             Schedule: rate(15 minutes)
+
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
