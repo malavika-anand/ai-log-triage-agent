@@ -17,13 +17,15 @@ Resources:
       CodeUri: hello-world/
       Handler: dist/handler.handler
       Runtime: nodejs20.x
-      Timeout: 10
+      Timeout: 30
 
       Environment:
         Variables:
           TARGET_LOG_GROUP: "/aws/lambda/ai-log-triage-agent-HelloWorldFunction-wJyAeWBPF1lm"
           WINDOW_MINUTES: "10"
           MAX_SAMPLES: "40"
+          OPENAI_MODEL: "gpt-4o-mini"
+          MIN_ERRORS_FOR_AI: "1"
 
       Policies:
         - Version: "2012-10-17"
