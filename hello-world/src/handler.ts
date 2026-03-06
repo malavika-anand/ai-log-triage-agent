@@ -3,6 +3,14 @@ import {
   CloudWatchLogsClient,
   FilterLogEventsCommand,
 } from "@aws-sdk/client-cloudwatch-logs";
+import {
+  DynamoDBClient,
+} from "@aws-sdk/client-dynamodb";
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+} from "@aws-sdk/lib-dynamodb";
 import OpenAI from "openai";
 import crypto from "crypto";
 import { IncidentReportSchema, type IncidentReport } from "./incidentSchema";
@@ -81,13 +89,17 @@ export const handler = async (event: ScheduledEvent, context: Context) => {
   const logGroup = process.env.TARGET_LOG_GROUP;
   const windowMinutes = Number(process.env.WINDOW_MINUTES ?? "10");
   const maxSamples = Number(process.env.MAX_SAMPLES ?? "40");
+  const tableName = process.env.INCIDENTS_TABLE_NAME;
 
   if (!logGroup) throw new Error("Missing env var TARGET_LOG_GROUP");
+  if (!tableName) throw new Error("Missing env var INCIDENTS_TABLE_NAME");
 
   const endTime = Date.now();
   const startTime = endTime - windowMinutes * 60 * 1000;
 
   const logsClient = new CloudWatchLogsClient({});
+  const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
   const filterPattern = '?"ERROR" ?"Error" ?"Exception" ?"failed" ?"timeout"';
 
   const resp = await logsClient.send(
@@ -217,13 +229,52 @@ export const handler = async (event: ScheduledEvent, context: Context) => {
     }
   }
 
-  console.log("Incident Report JSON:");
+  const existing = await dynamo.send(
+    new GetCommand({
+      TableName: tableName,
+      Key: { signature: report.signature },
+    })
+  );
+
+  if (existing.Item) {
+    console.log("Duplicate incident detected. Skipping store.");
+    return {
+      ok: true,
+      errorCount: evidence.errorCount,
+      aiUsed: true,
+      stored: false,
+      duplicate: true,
+      severity: report.severity,
+      signature: report.signature,
+    };
+  }
+
+  await dynamo.send(
+    new PutCommand({
+      TableName: tableName,
+      Item: {
+        signature: report.signature,
+        incidentTitle: report.incidentTitle,
+        severity: report.severity,
+        summary: report.summary,
+        likelyCauses: report.likelyCauses,
+        recommendedActions: report.recommendedActions,
+        confidence: report.confidence,
+        evidenceUsed: report.evidenceUsed,
+        createdAt: new Date().toISOString(),
+      },
+    })
+  );
+
+  console.log("Stored new incident:");
   console.log(JSON.stringify(report, null, 2));
 
   return {
     ok: true,
     errorCount: evidence.errorCount,
     aiUsed: true,
+    stored: true,
+    duplicate: false,
     severity: report.severity,
     signature: report.signature,
   };

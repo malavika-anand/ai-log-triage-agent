@@ -4,8 +4,7 @@ Description: >
   ai-log-triage-agent
 
   Sample SAM Template for ai-log-triage-agent
-  
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+
 Globals:
   Function:
     Timeout: 3
@@ -26,6 +25,7 @@ Resources:
           MAX_SAMPLES: "40"
           OPENAI_MODEL: "gpt-4o-mini"
           MIN_ERRORS_FOR_AI: "1"
+          INCIDENTS_TABLE_NAME: "ai-log-triage-incidents"
 
       Policies:
         - Version: "2012-10-17"
@@ -36,6 +36,11 @@ Resources:
                 - logs:DescribeLogGroups
                 - logs:DescribeLogStreams
               Resource: "*"
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+              Resource: !GetAtt IncidentsTable.Arn
 
       Events:
         Every15Minutes:
@@ -50,6 +55,18 @@ Resources:
           - src/handler.ts
         Minify: true
         Target: "es2020"
+
+  IncidentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ai-log-triage-incidents
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: signature
+          AttributeType: S
+      KeySchema:
+        - AttributeName: signature
+          KeyType: HASH
 
 Outputs:
   HelloWorldFunction:
